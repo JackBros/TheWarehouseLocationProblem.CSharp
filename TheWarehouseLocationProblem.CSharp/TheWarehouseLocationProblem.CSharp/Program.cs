@@ -36,6 +36,12 @@ namespace TheWarehouseLocationProblem.CSharp
             public double cost;
         }
 
+        class Result
+        {
+            public int generation;
+            public Individual individual;
+        }
+
         static Warehouse[] Warehouses;
         static Customer[] Customers;
         static Individual[] Population;
@@ -44,20 +50,52 @@ namespace TheWarehouseLocationProblem.CSharp
 
         static double[,] CustomerWarehouseCosts;
 
-        const int RANDOM_SEED = 3961, MAX_POPULATION_SIZE = 2000, MAX_GENERATION_COUNT = 4000;
-        const double XOVER_RATE = 0.8;
+        //const int RANDOM_SEED = 49, MAX_POPULATION_SIZE = 25000, MAX_GENERATION_COUNT = 400;
+
+        // 816 
+        //        const int RANDOM_SEED = 316269, MAX_POPULATION_SIZE = 20000, MAX_GENERATION_COUNT = 300;
+
+        // 801
+        //const int RANDOM_SEED = 6728122, MAX_POPULATION_SIZE = 19652, MAX_GENERATION_COUNT = 350;
+        // last const int RANDOM_SEED = 666, MAX_POPULATION_SIZE = 35125, MAX_GENERATION_COUNT = 250;
+
+        const int RANDOM_SEED = 6728122, MAX_POPULATION_SIZE = 19652, MAX_GENERATION_COUNT = 350;
+        const double XOVER_RATE = 1;
+        static double MUTATION_RATE = 0;
         static Random rnd = new Random(RANDOM_SEED);
 
         static int warehouseCount, customerCount, populationSize, generationCount = 0;
+        static long fitnessConstant = 1;
         static double totalFitness = 0;
+
+        static bool debug = false;
+        static string filePath = "";
+        static List<Result> results;
 
         static void Main(string[] args)
         {
-            if(args.Count() == 1)
+            try
             {
-                ReadFile(args[0]);
-                GA();
-                Console.ReadKey();
+                if (args.Count() == 1)
+                {
+                    filePath = args[0];
+                    File.WriteAllText("out.txt", filePath);
+                }
+                else if (args.Count() == 2)
+                {
+                    filePath = args[0];
+                    debug = true;
+                }
+
+                if(!string.IsNullOrWhiteSpace(filePath))
+                {
+                    ReadFile(filePath);
+                    GA();
+                }
+            }
+            catch (Exception exc)
+            {
+                File.WriteAllText("exc.txt", exc.Message);
             }
         }
 
@@ -71,7 +109,6 @@ namespace TheWarehouseLocationProblem.CSharp
                 str = str.Replace(".", ",");
                 if (str.Contains(","))
                 {
-                    int tamsayi = Convert.ToInt32(new string(str.Where(c => char.IsDigit(c)).ToArray()));
                     string[] split = str.Split(',');
                     if (split.Length == 2)
                     {
@@ -188,41 +225,86 @@ namespace TheWarehouseLocationProblem.CSharp
              * 
 	         * output.close();
              */
-            var bestIndividual = Population.OrderBy(o => o.cost).FirstOrDefault();
-            Console.WriteLine(bestIndividual.cost);
+            //var bestIndividual = Population.OrderByDescending(o => o.fitness).FirstOrDefault();
+
+            var bestRun= results.OrderByDescending(o => o.individual.fitness).FirstOrDefault();
+            Console.WriteLine(bestRun.individual.cost.ToString().Replace(',','.'));
 
             string assignments = "";
             for (int i = 0; i < customerCount; i++)
             {
-                assignments += bestIndividual.genotype[i] + " ";
+                assignments += bestRun.individual.genotype[i] + " ";
             }
 
             Console.Write(assignments.TrimEnd());
+            if(debug) Console.ReadKey();
         }
 
         static void GA()
         {
+            results = new List<Result>();
             GA_InitializePopulation();
             GA_CalculateFitness();
             while (generationCount < MAX_GENERATION_COUNT)
             {
-                var orderedPop = Population.OrderBy(o => o.cost);
+
+                var orderedPop = Population.OrderByDescending(o => o.fitness);
                 var bestIndividual = orderedPop.FirstOrDefault();
                 var worstIndividual = orderedPop.LastOrDefault();
 
-                Console.WriteLine(string.Format("Gen {0} : Min Cost ({1}) - Max Cost ({2}) // Best Fitness ({3}) - Worst Fitness ({4}) // Total Fitness ({5})", generationCount, bestIndividual.cost, worstIndividual.cost, bestIndividual.fitness, worstIndividual.fitness, totalFitness));
+                //if (bestIndividual.fitness - worstIndividual.fitness < 0.001)
+                //{
+                //    try
+                //    {
+                //        MUTATION_RATE = MUTATION_RATE * 1.1;
+                //    }
+                //    catch
+                //    {
+
+                //    }
+                //}
+
+                results.Add(new Result
+                {
+                    generation = generationCount,
+                    individual = bestIndividual
+                });
+
+                //if(generationCount > 50)
+                //{
+                //    if((Math.Abs(results.Where(w => w.generation > (generationCount - 50)).Average(a => a.individual.cost) - bestIndividual.cost) < 1000))
+                //    {
+                //        if (MUTATION_RATE * 1.1 < 0.9)
+                //        {
+                //            MUTATION_RATE = MUTATION_RATE * 1.1;
+                //        }
+                //    }
+                //    else
+                //    {
+                //        MUTATION_RATE = 0.01;
+                //    }
+                //}
+
+                if (debug)
+                {
+                    Console.WriteLine(string.Format("Gen {0} : Min Cost ({1}) - Max Cost ({2}) // Best Fitness ({3}) - Worst Fitness ({4}) // Total Fitness ({5})", generationCount, bestIndividual.cost, worstIndividual.cost, bestIndividual.fitness, worstIndividual.fitness, totalFitness));
+                }
 
                 GA_Reproduction();
+                GA_Mutation();
                 GA_CalculateFitness();
                 generationCount++;
             }
 
 
-            Console.WriteLine(" ");
-            Console.WriteLine("FINISHED");
-            Console.WriteLine(" ");
-            Console.WriteLine(" ");
-            Console.WriteLine(" ");
+            if(debug)
+            {
+                Console.WriteLine(" ");
+                Console.WriteLine("FINISHED");
+                Console.WriteLine(" ");
+                Console.WriteLine(" ");
+                Console.WriteLine(" ");
+            }
             Output();
         }
 
@@ -277,23 +359,62 @@ namespace TheWarehouseLocationProblem.CSharp
                 Individual ind = Population[i];
                 ind.fitness = 0;
 
-                for (int j = 0; j < customerCount; j++)
+                if(GA_IsIndividualFeasible(ind))
                 {
-                    int warehouseIndex = ind.genotype[j];
-
-                    if(!ind.warehouseList[warehouseIndex])
+                    for (int j = 0; j < customerCount; j++)
                     {
-                        ind.warehouseList[warehouseIndex] = true;
-                        ind.cost += Warehouses[warehouseIndex].setupCost;
+                        int warehouseIndex = ind.genotype[j];
+
+                        if (!ind.warehouseList[warehouseIndex])
+                        {
+                            ind.warehouseList[warehouseIndex] = true;
+                            ind.cost += Warehouses[warehouseIndex].setupCost;
+                        }
+
+                        ind.cost += CustomerWarehouseCosts[j, warehouseIndex];
                     }
 
-                    ind.cost += CustomerWarehouseCosts[j, warehouseIndex];
+                    ind.fitness = Math.Pow(populationSize, 2) / ind.cost;
+                    ind.fitness = ind.fitness * fitnessConstant;
+                    totalFitness += ind.fitness;
+                }
+                else
+                {
+                    ind.cost = 999999999999;
+                    ind.fitness = 0;
                 }
 
-                ind.fitness = Math.Pow(populationSize, 2) / ind.cost;
-
-                totalFitness += ind.fitness;
+                
             }
+        }
+
+        static bool GA_IsIndividualFeasible(Individual ind)
+        {
+            int i = 0;
+            bool isFeasible = true;
+
+            foreach (var warehouseIndex in ind.genotype)
+            {
+                var customer = Customers[i];
+                var warehouse = Warehouses[warehouseIndex];
+
+                if(warehouse.remainingCapacity > customer.demand)
+                {
+                    warehouse.remainingCapacity = warehouse.remainingCapacity - customer.demand;
+                }
+                else
+                {
+                    isFeasible = false;
+                }
+
+                i++;
+            }
+
+            for (i = 0; i < warehouseCount; i++)
+            {
+                Warehouses[i].remainingCapacity = Warehouses[i].capacity;
+            }
+            return isFeasible;
         }
 
         static void GA_Reproduction()
@@ -321,8 +442,15 @@ namespace TheWarehouseLocationProblem.CSharp
 
             for (int i = 0; i < populationSize; i++)
             {
-                int randomParentIndex = rnd.Next(totalCopies);
-                MatingPool[i] = Population[matingCandidates[randomParentIndex]];
+                try
+                {
+                    int randomParentIndex = rnd.Next(totalCopies);
+                    MatingPool[i] = Population[matingCandidates[randomParentIndex]];
+                }
+                catch (Exception exc)
+                {
+                    string s = exc.ToString();
+                }
             }
 
             for (int i = 0; i < populationSize / 2; i++)
@@ -335,7 +463,7 @@ namespace TheWarehouseLocationProblem.CSharp
 
                 double xoverRandom = rnd.NextDouble();
 
-                if (xoverRandom > XOVER_RATE)
+                if (xoverRandom > (1 - XOVER_RATE))
                 {
                     var firstChild = new Individual
                     {
@@ -356,19 +484,23 @@ namespace TheWarehouseLocationProblem.CSharp
                         cost = 0
                     };
 
-                    int xoverPoint = rnd.Next(customerCount);
-
-                    for (int j = 0; j < customerCount; j++)
+                    for (int x = 0; x < customerCount / 2; x++)
                     {
-                        if(j < xoverPoint)
+                        int xoverPoint = rnd.Next(customerCount);
+
+
+                        for (int j = 0; j < customerCount; j++)
                         {
-                            firstChild.genotype[j] = firstParent.genotype[j];
-                            secondChild.genotype[j] = secondParent.genotype[j];
-                        }
-                        else
-                        {
-                            firstChild.genotype[j] = secondParent.genotype[j];
-                            secondChild.genotype[j] = firstParent.genotype[j];
+                            if (j < xoverPoint)
+                            {
+                                firstChild.genotype[j] = firstParent.genotype[j];
+                                secondChild.genotype[j] = secondParent.genotype[j];
+                            }
+                            else
+                            {
+                                firstChild.genotype[j] = secondParent.genotype[j];
+                                secondChild.genotype[j] = firstParent.genotype[j];
+                            }
                         }
                     }
 
@@ -383,7 +515,38 @@ namespace TheWarehouseLocationProblem.CSharp
                 }
             }
 
-            Population = NewGeneration;
+            //Population = NewGeneration;
+
+            var pop = Population.OrderByDescending(o => o.fitness).ToArray();
+            var gen = NewGeneration.OrderByDescending(o => o.fitness).ToArray();
+
+            Population = new Individual[populationSize];
+
+            for (int l = 0; l < populationSize / 2; l++)
+            {
+                Population[l * 2] = pop[l];
+                Population[(l * 2) + 1] = gen[l];
+            }
+
+        }
+
+        static void GA_Mutation()
+        {
+            for (int i = 0; i < populationSize; i++)
+            {
+                var individual = Population[i];
+
+                for (int j = 0; j < customerCount; j++)
+                {
+                    double mutationRandom = rnd.NextDouble();
+
+                    if (mutationRandom > (1 - MUTATION_RATE))
+                    {
+                        individual.genotype[j] = rnd.Next(warehouseCount);
+                    }
+
+                }
+            }
         }
     }
 }
