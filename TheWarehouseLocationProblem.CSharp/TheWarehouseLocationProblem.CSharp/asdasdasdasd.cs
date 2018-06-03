@@ -24,6 +24,7 @@
 //            public int id;
 //            public int demand;
 //            public int? assignedWarehouseId;
+//            public double[] warehouseCosts;
 //        }
 
 //        class Individual
@@ -42,6 +43,14 @@
 //            public Individual individual;
 //        }
 
+//        class WarehouseCustomerCost
+//        {
+//            public int warehouseId;
+//            public double totalCost;
+//            public double selectionProbability;
+//            public int expectedCopies;
+//        }
+
 //        static Warehouse[] Warehouses;
 //        static Customer[] Customers;
 //        static Individual[] Population;
@@ -58,14 +67,15 @@
 //        // 801
 //        //const int RANDOM_SEED = 6728122, MAX_POPULATION_SIZE = 19652, MAX_GENERATION_COUNT = 350;
 //        // last const int RANDOM_SEED = 666, MAX_POPULATION_SIZE = 35125, MAX_GENERATION_COUNT = 250;
-
-//        const int RANDOM_SEED = 6728122, MAX_POPULATION_SIZE = 19652, MAX_GENERATION_COUNT = 350;
+//        //800
+//        //const int RANDOM_SEED = 6728122, MAX_POPULATION_SIZE = 19652, MAX_GENERATION_COUNT = 350;
+//        const int RANDOM_SEED = 666, MAX_POPULATION_SIZE = 27312, MAX_GENERATION_COUNT = 350;
 //        const double XOVER_RATE = 1;
 //        static double MUTATION_RATE = 0;
 //        static Random rnd = new Random(RANDOM_SEED);
 
 //        static int warehouseCount, customerCount, populationSize, generationCount = 0;
-//        static long fitnessConstant = 1;
+//        static double fitnessCoefficient = 1;
 //        static double totalFitness = 0;
 
 //        static bool debug = false;
@@ -142,9 +152,10 @@
 //                        warehouseCount = Convert.ToInt32(items[0]);
 //                        customerCount = Convert.ToInt32(items[1]);
 
+//                        double populationConstant = Math.Pow(customerCount, warehouseCount) / 2;
 //                        try
 //                        {
-//                            populationSize = Convert.ToInt32(Math.Min(Math.Pow(customerCount, warehouseCount) / 2, MAX_POPULATION_SIZE));
+//                            populationSize = Convert.ToInt32(Math.Min(populationConstant, MAX_POPULATION_SIZE));
 //                        }
 //                        catch
 //                        {
@@ -152,6 +163,7 @@
 //                        }
 
 //                        if (populationSize % 2 == 1) populationSize++;
+//                        fitnessCoefficient = Math.Pow(populationSize, 2);
 
 //                        Warehouses = new Warehouse[warehouseCount];
 //                        Customers = new Customer[customerCount];
@@ -182,7 +194,8 @@
 //                            {
 //                                id = customerIndexCounter,
 //                                demand = Convert.ToInt32(items[0]),
-//                                assignedWarehouseId = null
+//                                assignedWarehouseId = null,
+//                                warehouseCosts = new double[warehouseCount]
 //                            };
 //                        }
 //                    }
@@ -193,6 +206,7 @@
 //                            for (int j = 0; j < warehouseCount; j++)
 //                            {
 //                                CustomerWarehouseCosts[customerIndexCounter, j] = ConvertToDouble(items[j]);
+//                                Customers[customerIndexCounter].warehouseCosts[j] = ConvertToDouble(items[j]);
 //                            }
 //                            customerIndexCounter++;
 //                        }
@@ -328,10 +342,49 @@
 
 //                foreach (var customer in Customers)
 //                {
+//                    var tmpCosts = new WarehouseCustomerCost[warehouseCount];
+//                    double totalCost = 0;
+//                    int totalCopies = 0;
+
+//                    for (int k = 0; k < warehouseCount; k++)
+//                    {
+//                        var cost = (customer.warehouseCosts[k] + Warehouses[k].setupCost);
+//                        cost = (cost == 0) ? 1 : cost;
+//                        tmpCosts[k] = new WarehouseCustomerCost
+//                        {
+//                            warehouseId = k,
+//                            totalCost = 5 / cost
+//                        };
+
+//                        totalCost += tmpCosts[k].totalCost;
+//                    }
+
+//                    for (int k = 0; k < warehouseCount; k++)
+//                    {
+//                        tmpCosts[k].selectionProbability = tmpCosts[k].totalCost / totalCost;
+//                        tmpCosts[k].expectedCopies = (int)Math.Ceiling(tmpCosts[k].selectionProbability * warehouseCount);
+//                        totalCopies += tmpCosts[k].expectedCopies;
+//                    }
+
+//                    int[] warehouseCandidates = new int[totalCopies];
+//                    int candidateCounter = 0;
+
+//                    for (int k = 0; k < warehouseCount; k++)
+//                    {
+//                        for (int j = 0; j < tmpCosts[k].expectedCopies; j++)
+//                        {
+//                            warehouseCandidates[candidateCounter] = k;
+//                            candidateCounter++;
+//                        }
+//                    }
+
 //                    while (true)
 //                    {
-//                        int selectedWarehouseIndex = rnd.Next(warehouseCount);
+//                        int randomWarehouseIndex = rnd.Next(totalCopies);
+//                        int selectedWarehouseIndex = warehouseCandidates[randomWarehouseIndex];
 //                        Warehouse selectedWarehouse = Warehouses[selectedWarehouseIndex];
+
+
 
 //                        if (selectedWarehouse.remainingCapacity > customer.demand)
 //                        {
@@ -339,6 +392,7 @@
 //                            selectedWarehouse.remainingCapacity = selectedWarehouse.remainingCapacity - customer.demand;
 //                            break;
 //                        }
+
 //                    }
 //                }
 
@@ -374,8 +428,7 @@
 //                        ind.cost += CustomerWarehouseCosts[j, warehouseIndex];
 //                    }
 
-//                    ind.fitness = Math.Pow(populationSize, 2) / ind.cost;
-//                    ind.fitness = ind.fitness * fitnessConstant;
+//                    ind.fitness = fitnessCoefficient / ind.cost;
 //                    totalFitness += ind.fitness;
 //                }
 //                else
