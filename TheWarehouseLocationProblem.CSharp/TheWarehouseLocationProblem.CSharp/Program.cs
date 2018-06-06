@@ -22,14 +22,14 @@ namespace TheWarehouseLocationProblem.CSharp
         public int demand;
         public int? assignedWarehouseId;
         public double[] warehouseCosts;
+        public WarehouseCustomerCost[] assignmentCosts;
+        public int[] warehouseCandidates;
     }
 
     public class Individual
     {
         public int[] genotype;
         public double fitness;
-        public double selectionProbability;
-        public int expectedCopies;
         public bool[] warehouseList;
         public double cost;
     }
@@ -54,10 +54,9 @@ namespace TheWarehouseLocationProblem.CSharp
         static bool debug = false;
         public static Warehouse[] Warehouses;
         public static Customer[] Customers;
-        public static double[,] CustomerWarehouseCosts;
         public static int warehouseCount, customerCount, populationSize = 0;
         public static double fitnessCoefficient = 1;
-        public static int MAX_POPULATION_SIZE = 35000, MAX_GENERATION_COUNT = 20000;
+        public static int MAX_POPULATION_SIZE = 500, MAX_GENERATION_COUNT = 3000, TOURNAMENT_SELECTOR = 2;
 
         public static double ConvertToDouble(object obj)
         {
@@ -93,7 +92,6 @@ namespace TheWarehouseLocationProblem.CSharp
             if (args.Count() == 1)
             {
                 filePath = args[0];
-                File.WriteAllText("out.txt", filePath);
             }
             else if (args.Count() == 2)
             {
@@ -103,19 +101,178 @@ namespace TheWarehouseLocationProblem.CSharp
 
             if (!string.IsNullOrWhiteSpace(filePath))
             {
-                ReadFile(filePath);
 
-                ACO aco = new ACO()
+                int instanceID = 0;
+
+                switch (instanceID)
                 {
-                    customerCount = customerCount,
-                    debug = true,
-                    MAX_GENERATION_COUNT = MAX_GENERATION_COUNT,
-                    warehouseCount = warehouseCount,
-                };
-                aco.Start();
+                    default:
+                    case 0:
+                        filePath = @"data\wl_1000_1";
+                        GA_Dev();
+                        break;
+                    case 1:
+                        filePath = @"data\wl_25_2";
+                        GA_I1();
+                        break;
+                    case 2:
+                        filePath = @"data\wl_100_4";
+                        GA_I2();
+                        break;
+                    case 3:
+                        filePath = @"data\wl_500_1";
+                        GA_I3();
+                        break;
+                    case 4:
+                        filePath = @"data\wl_1000_1";
+                        GA_I4();
+                        break;
+                    case 5:
+                        filePath = @"data\wl_2000_1";
+                        GA_I5();
+                        break;
+                }
 
                 if (debug) Console.ReadKey();
             }
+        }
+
+        static void GA_Dev()
+        {
+            ReadFile(filePath);
+
+            MAX_POPULATION_SIZE = 500;
+            MAX_GENERATION_COUNT = 3000;
+            TOURNAMENT_SELECTOR = 2;
+
+            GA_Dev ga = new GA_Dev();
+            ga.customerCount = customerCount;
+            ga.warehouseCount = warehouseCount;
+            ga.debug = debug;
+            ga.fitnessCoefficient = fitnessCoefficient;
+            ga.MAX_GENERATION_COUNT = MAX_GENERATION_COUNT;
+            ga.MAX_POPULATION_SIZE = MAX_POPULATION_SIZE;
+            ga.populationSize = populationSize;
+            ga.XOVER_RATE = 1;
+            ga.MUTATION_RATE = 0.002685;
+            ga.TOURNAMENT_SELECTOR = MAX_POPULATION_SIZE / (20);
+
+            ga.Start();
+        }
+
+        static void GA_I1()
+        {
+            ReadFile(filePath);
+
+            MAX_POPULATION_SIZE = 45000;
+            MAX_GENERATION_COUNT = 20;
+            TOURNAMENT_SELECTOR = 2;
+
+            GA_I1 ga = new GA_I1();
+            ga.customerCount = customerCount;
+            ga.warehouseCount = warehouseCount;
+            ga.debug = debug;
+            ga.fitnessCoefficient = fitnessCoefficient;
+            ga.MAX_GENERATION_COUNT = MAX_GENERATION_COUNT;
+            ga.MAX_POPULATION_SIZE = MAX_POPULATION_SIZE;
+            ga.populationSize = populationSize;
+            ga.XOVER_RATE = 1;
+            ga.MUTATION_RATE = 0.027;
+            ga.TOURNAMENT_SELECTOR = MAX_POPULATION_SIZE / 100;
+
+            ga.Start();
+        }
+
+        static void GA_I2()
+        {
+            ReadFile(filePath);
+
+            MAX_POPULATION_SIZE = 1500;
+            MAX_GENERATION_COUNT = 2000;
+            TOURNAMENT_SELECTOR = 2;
+
+            GA_I2 ga = new GA_I2();
+            ga.customerCount = customerCount;
+            ga.warehouseCount = warehouseCount;
+            ga.debug = debug;
+            ga.fitnessCoefficient = fitnessCoefficient;
+            ga.MAX_GENERATION_COUNT = MAX_GENERATION_COUNT;
+            ga.MAX_POPULATION_SIZE = MAX_POPULATION_SIZE;
+            ga.populationSize = populationSize;
+            ga.XOVER_RATE = 1;
+            ga.MUTATION_RATE = 0.0017502685;
+            ga.TOURNAMENT_SELECTOR = MAX_POPULATION_SIZE / (150);
+
+            ga.Start();
+        }
+
+        static void GA_I3()
+        {
+            ReadFile(filePath);
+
+            MAX_POPULATION_SIZE = 10000;
+            MAX_GENERATION_COUNT = 50;
+            TOURNAMENT_SELECTOR = 2;
+
+            GA_I3 ga = new GA_I3();
+            ga.customerCount = customerCount;
+            ga.warehouseCount = warehouseCount;
+            ga.debug = debug;
+            ga.fitnessCoefficient = fitnessCoefficient;
+            ga.MAX_GENERATION_COUNT = MAX_GENERATION_COUNT;
+            ga.MAX_POPULATION_SIZE = MAX_POPULATION_SIZE;
+            ga.populationSize = populationSize;
+            ga.XOVER_RATE = 1;
+            ga.MUTATION_RATE = 0.00685;
+            ga.TOURNAMENT_SELECTOR = MAX_POPULATION_SIZE / (200);
+
+            ga.Start();
+        }
+
+        static void GA_I4()
+        {
+            ReadFile(filePath);
+
+            MAX_POPULATION_SIZE = 500;
+            MAX_GENERATION_COUNT = 3000;
+            TOURNAMENT_SELECTOR = 2;
+
+            GA_I4 ga = new GA_I4();
+            ga.customerCount = customerCount;
+            ga.warehouseCount = warehouseCount;
+            ga.debug = debug;
+            ga.fitnessCoefficient = fitnessCoefficient;
+            ga.MAX_GENERATION_COUNT = MAX_GENERATION_COUNT;
+            ga.MAX_POPULATION_SIZE = MAX_POPULATION_SIZE;
+            ga.populationSize = populationSize;
+            ga.XOVER_RATE = 1;
+            ga.MUTATION_RATE = 0.002685;
+            ga.TOURNAMENT_SELECTOR = MAX_POPULATION_SIZE / (20);
+
+            ga.Start();
+        }
+
+        static void GA_I5()
+        {
+            ReadFile(filePath);
+
+            MAX_POPULATION_SIZE = 300;
+            MAX_GENERATION_COUNT = 14229;
+            TOURNAMENT_SELECTOR = 2;
+
+            GA_I5 ga = new GA_I5();
+            ga.customerCount = customerCount;
+            ga.warehouseCount = warehouseCount;
+            ga.debug = debug;
+            ga.fitnessCoefficient = fitnessCoefficient;
+            ga.MAX_GENERATION_COUNT = MAX_GENERATION_COUNT;
+            ga.MAX_POPULATION_SIZE = MAX_POPULATION_SIZE;
+            ga.populationSize = populationSize;
+            ga.XOVER_RATE = 1;
+            ga.MUTATION_RATE = 0.001;
+            ga.TOURNAMENT_SELECTOR = MAX_POPULATION_SIZE / (30);
+
+            ga.Start();
         }
 
         static void ReadFile(string fileName)
@@ -126,8 +283,8 @@ namespace TheWarehouseLocationProblem.CSharp
             {
                 var items = line.Split(' ');
                 if (i == 0)
-                {                    
-                    if(items.Count() == 2)
+                {
+                    if (items.Count() == 2)
                     {
                         warehouseCount = Convert.ToInt32(items[0]);
                         customerCount = Convert.ToInt32(items[1]);
@@ -143,11 +300,10 @@ namespace TheWarehouseLocationProblem.CSharp
                         }
 
                         if (populationSize % 2 == 1) populationSize++;
-                        fitnessCoefficient = Math.Pow(populationSize, 2);
+                        fitnessCoefficient = 10 * Math.Pow(populationSize, 2);
 
                         Warehouses = new Warehouse[warehouseCount];
                         Customers = new Customer[customerCount];
-                        CustomerWarehouseCosts = new double[customerCount,warehouseCount];
                     }
                 }
                 else if (i > 0 && i <= warehouseCount)
@@ -181,11 +337,10 @@ namespace TheWarehouseLocationProblem.CSharp
                     }
                     else
                     {
-                        if(items.Count() == warehouseCount)
+                        if (items.Count() == warehouseCount)
                         {
                             for (int j = 0; j < warehouseCount; j++)
                             {
-                                CustomerWarehouseCosts[customerIndexCounter, j] = ConvertToDouble(items[j]);
                                 Customers[customerIndexCounter].warehouseCosts[j] = ConvertToDouble(items[j]);
                             }
                             customerIndexCounter++;
