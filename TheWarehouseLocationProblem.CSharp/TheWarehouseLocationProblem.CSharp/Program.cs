@@ -98,8 +98,14 @@ namespace TheWarehouseLocationProblem.CSharp
                 filePath = args[0];
                 debug = true;
             }
-
-            if (!string.IsNullOrWhiteSpace(filePath))
+            debug = true;
+            filePath = @"data\wl_1000_1";
+            GA_I4();
+            //filePath = @"data\wl_50_1";
+            //GA_Dev();
+            //filePath = @"data\wl_200_5";
+            //GA_Dev();
+            /*if (!string.IsNullOrWhiteSpace(filePath))
             {
 
                 int instanceID = 0;
@@ -134,7 +140,7 @@ namespace TheWarehouseLocationProblem.CSharp
                 }
 
                 if (debug) Console.ReadKey();
-            }
+            }*/
         }
 
         static void GA_Dev()
